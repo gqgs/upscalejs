@@ -1,6 +1,8 @@
 {
   "name": "upscalejs",
   "version": "0.0.0",
+  "description": "Upscale images using super resolution AI models",
+  "main": "src/image/worker.ts",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
@@ -10,6 +12,15 @@
   },
   "dependencies": {
     "vue": "^3.2.31"
+  },
+  "keywords": [
+    "image",
+    "upscale",
+    "ts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gqgs/upscalejs.git"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.1.0",
