@@ -11,7 +11,7 @@ import { defineComponent, ref } from "vue"
 import { UpscaleWorker } from "../image/worker"
 
 const resultcanvas = ref()
-const upscaler = new UpscaleWorker(4)
+const upscaler = new UpscaleWorker()
 
 const handleChange = async (event: Event) => {
   const files = (event.target as HTMLInputElement).files ?? []

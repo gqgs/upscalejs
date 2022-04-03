@@ -1,8 +1,17 @@
+const Worker = await import("./upscale.worker?worker")
+
 interface Options {
-  denoiseModel: "no-denoise" | "conservative" | "denoise1x" | "denoise2x" | "denoise3x"
+  // Max number of workers that will be created for multiple images.
+  maxWorkers?: number
+  // Max number of worker that will be created for each image.
+  maxInternalWorkers?: number
+  // The model that will be used for upscaling the image.
+  denoiseModel?: "no-denoise" | "conservative" | "denoise1x" | "denoise2x" | "denoise3x"
 }
   
-const defaultOptions: Options = {
+const defaultOptions = {
+  maxWorkers: 1,
+  maxInternalWorkers: 4,
   denoiseModel: "conservative"
 }
 
@@ -11,14 +20,14 @@ interface Terminator {
 }
 
 abstract class WorkerPool<worker extends Terminator> {
+  protected options
   protected created_workers = 0
-  protected max_workers: number
   protected workers: worker[] = []
   private waitingForWorker: ((upscaler: worker) => void) [] = []
-  public abstract upscale(bitmap: ImageBitmap, options: Options): Promise<ImageBitmap>
+  public abstract upscale(bitmap: ImageBitmap): Promise<ImageBitmap>
 
-  constructor(max_workers: number) {
-    this.max_workers = max_workers
+  constructor(options?: Options) {
+    this.options = Object.assign(defaultOptions, options)
   }
 
   protected async getWorker(): Promise<worker> {
@@ -49,23 +58,21 @@ abstract class WorkerPool<worker extends Terminator> {
 }
 
 export class UpscaleWorker extends WorkerPool<upscaleWorker> {
-  constructor(max_workers: number) {
-    super(max_workers)
+  constructor(options?: Options) {
+    super(options)
   }
 
-  public async upscale(bitmap: ImageBitmap, options: Options = defaultOptions): Promise<ImageBitmap> {
-    if (this.created_workers < this.max_workers) {
+  public async upscale(bitmap: ImageBitmap): Promise<ImageBitmap> {
+    if (this.created_workers < this.options.maxWorkers) {
       this.created_workers++
-      this.workers.push(new upscaleWorker(this.max_workers))
+      this.workers.push(new upscaleWorker(this.options))
     }
     const worker = await this.getWorker()
-    const result = worker.upscale(bitmap, options)
+    const result = worker.upscale(bitmap)
     this.putWorker(worker)
     return result
   }
 }
-
-const Worker = await import("./upscale.worker?worker")
 
 interface Canvas {
   x: number
@@ -79,8 +86,8 @@ class upscaleWorker extends WorkerPool<Worker> {
   private pending = new Map<number, Canvas>()
   private resolve?: (canvas: Promise<ImageBitmap>) => void
 
-  constructor(max_workers: number) {
-    super(max_workers)
+  constructor(options?: Options) {
+    super(options)
   }
 
   private onmessage(event: MessageEvent) {
@@ -95,7 +102,7 @@ class upscaleWorker extends WorkerPool<Worker> {
     }
   }
 
-  public upscale(bitmap: ImageBitmap, options: Options = defaultOptions): Promise<ImageBitmap> {
+  public upscale(bitmap: ImageBitmap): Promise<ImageBitmap> {
     return new Promise(resolve => {
       this.resolve = resolve
       this.canvas.width = bitmap.width * 2
@@ -104,7 +111,7 @@ class upscaleWorker extends WorkerPool<Worker> {
       canvas_list.forEach(async canvas => {
         const id = this.id++
         this.pending.set(id, canvas)
-        if (this.created_workers < this.max_workers) {
+        if (this.created_workers < this.options.maxInternalWorkers) {
           this.created_workers++
           const worker = new Worker.default()
           worker.onmessage = this.onmessage.bind(this)
@@ -114,7 +121,7 @@ class upscaleWorker extends WorkerPool<Worker> {
         worker.postMessage({
           id,
           image: canvas.element.getContext("2d")?.getImageData(0, 0, 200, 200),
-          denoiseModel: options.denoiseModel
+          denoiseModel: this.options.denoiseModel
         })
         this.putWorker(worker)
       })
