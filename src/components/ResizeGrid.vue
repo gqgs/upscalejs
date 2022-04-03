@@ -2,9 +2,28 @@
 </script>
 
 <template>
-  <div class="columns is-inline-flex mt-5">
-      <div class="file is-medium is-12 column">
-      <label class="file-label">
+  <div class="columns is-centered pt-6 pb-4 is-mobile">
+      <div class="is-6 column has-text-right">
+        <div class="dropdown" :class="{'is-active': active}">
+          <div class="dropdown-trigger">
+            <button class="is-medium button is-white" aria-haspopup="true" aria-controls="dropdown-menu" @click="active = !active">
+              <span>{{model}}</span>
+              <span class="icon is-small">
+                <ion-icon name="chevron-down-outline"></ion-icon>
+              </span>
+            </button>
+          </div>
+          <div class="dropdown-menu" id="dropdown-menu" role="menu">
+            <div class="dropdown-content has-text-centered">
+              <a href="#" :key='value' v-for="value in models" @click.prevent="model = value; active = false" class="dropdown-item">
+              {{value}}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="file is-white is-medium is-6 column">
+      <label class="file-label is-justify-content-flex-start">
         <input class="file-input" type="file" name="resume" @change="handleChange" :disabled="upscaling">
         <span class="file-cta">
           <ion-icon name="images-outline"></ion-icon>
@@ -25,20 +44,21 @@
   </div>
 
   <div class="columns">
-    <div class="is-1 column"></div>
-     <div class="is-10 column"><progress v-if="upscaling" class="progress" max="100"></progress></div>
-     <div class="is-1 column"></div>
+     <div class="is-10 is-offset-1 column"><progress v-if="upscaling" class="progress" max="100"></progress></div>
   </div>
 </template>
+
 
 <script lang="ts">
 import { defineComponent, ref } from "vue"
 import { UpscaleWorker } from "../image/worker"
 
+const models = ["no-denoise", "conservative", "denoise1x", "denoise2x", "denoise3x"]
+const model = "conservative"
 const upscaling = ref(false)
+const active = ref(false)
 const input = ref("")
 const resultcanvas = ref()
-const upscaler = new UpscaleWorker()
 
 const handleChange = async (event: Event) => {
   const files = (event.target as HTMLInputElement).files ?? []
@@ -49,6 +69,9 @@ const handleChange = async (event: Event) => {
   const file = files[0]
   const bitmap = await createImageBitmap(file)
   input.value = URL.createObjectURL(file)
+  const upscaler = new UpscaleWorker({
+    denoiseModel: model,
+  })
   const result = await upscaler.upscale(bitmap)
   const canvas = resultcanvas.value as HTMLCanvasElement
   canvas.width = result.width
@@ -65,6 +88,9 @@ export default defineComponent({
       handleChange,
       resultcanvas,
       upscaling,
+      models,
+      model,
+      active
     }
   }
 })
