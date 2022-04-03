@@ -10,7 +10,6 @@ onmessage = async (event: MessageEvent) => {
   const upscaled = await predictor.predict(image, denoiseModel)
 
   postMessage({
-    type: "done",
     id,
     upscaled
   })

@@ -8,10 +8,10 @@
 
 <script lang="ts">
 import { defineComponent, ref } from "vue"
-import { Upscaler } from "../image"
+import { UpscaleWorker } from "../image/worker"
 
 const resultcanvas = ref()
-const upscaler = new Upscaler()
+const upscaler = new UpscaleWorker()
 
 const handleChange = async (event: Event) => {
   const files = (event.target as HTMLInputElement).files ?? []

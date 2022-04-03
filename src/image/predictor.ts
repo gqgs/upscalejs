@@ -50,7 +50,6 @@ export default class Predictor {
       }
     }
     const bitmap = new ImageData(rgbaArray, 400, 400)
-    console.log(bitmap)
     return createImageBitmap(bitmap)
   }
 }
