@@ -6,32 +6,22 @@ const defaultOptions: Options = {
   denoiseModel: "conservative"
 }
 
-interface Upscaler {
-  upscale(bitmap: ImageBitmap, options: Options): Promise<ImageBitmap>
+interface Terminator {
   terminate(): void
 }
 
-export class UpscaleWorker implements Upscaler {
-  private created_workers = 0
-  private _max_workers = 1
-  private workers: upscaleWorker[] = []
-  private waitingForWorker: ((upscaler: upscaleWorker) => void) [] = []
+abstract class WorkerPool<worker extends Terminator> {
+  protected created_workers = 0
+  protected max_workers: number
+  protected workers: worker[] = []
+  private waitingForWorker: ((upscaler: worker) => void) [] = []
+  public abstract upscale(bitmap: ImageBitmap, options: Options): Promise<ImageBitmap>
 
-  public get max_workers(): number {
-    return this._max_workers
+  constructor(max_workers: number) {
+    this.max_workers = max_workers
   }
 
-  public set max_workers(workers: number) {
-    this._max_workers = workers
-  }
-
-  public terminate() {
-    this.workers.map(worker => worker.terminate())
-    this.workers = []
-    this.created_workers = 0
-  }
-
-  private async getWorker(): Promise<upscaleWorker> {
+  protected async getWorker(): Promise<worker> {
     return new Promise(resolve => {
       const worker = this.workers.shift()
       if (worker) {
@@ -42,20 +32,35 @@ export class UpscaleWorker implements Upscaler {
     })
   }
 
-  public async upscale(bitmap: ImageBitmap, options: Options = defaultOptions): Promise<ImageBitmap> {
-    if (this.created_workers < this.max_workers) {
-      this.created_workers++
-      this.workers.push(new upscaleWorker())
-    }
-
-    const worker = await this.getWorker()
-    const result = worker.upscale(bitmap, options)
+  protected putWorker(worker: worker) {
     const waiting = this.waitingForWorker.shift()
     if (waiting) {
       waiting(worker)
-    } else {
-      this.workers.push(worker)
+      return
     }
+    this.workers.push(worker)
+  }
+
+  public terminate() {
+    this.workers.map(worker => worker.terminate())
+    this.workers = []
+    this.created_workers = 0
+  }
+}
+
+export class UpscaleWorker extends WorkerPool<upscaleWorker> {
+  constructor(max_workers: number) {
+    super(max_workers)
+  }
+
+  public async upscale(bitmap: ImageBitmap, options: Options = defaultOptions): Promise<ImageBitmap> {
+    if (this.created_workers < this.max_workers) {
+      this.created_workers++
+      this.workers.push(new upscaleWorker(this.max_workers))
+    }
+    const worker = await this.getWorker()
+    const result = worker.upscale(bitmap, options)
+    this.putWorker(worker)
     return result
   }
 }
@@ -68,24 +73,25 @@ interface Canvas {
   element: HTMLCanvasElement
 }
 
-class upscaleWorker implements Upscaler {
-  private canvas: HTMLCanvasElement = document.createElement("canvas")
+class upscaleWorker extends WorkerPool<Worker> {
   private id = 0
+  private canvas: HTMLCanvasElement = document.createElement("canvas")
   private pending = new Map<number, Canvas>()
-  private worker = new Worker.default()
   private resolve?: (canvas: Promise<ImageBitmap>) => void
 
-  constructor() {
-    this.worker.onmessage = (event: MessageEvent) => {
-      const { id, upscaled } = event.data
-      if (!isImageBitmap(upscaled)) throw Error("expected upscaled to be an 'ImageBitmap'")
-      const result = this.pending.get(id)
-      if (!result) throw Error("upscaled result is not pending")
-      this.canvas.getContext("2d")?.drawImage(upscaled, result.x, result.y)
-      this.pending.delete(id)
-      if (this.pending.size == 0) {
-        this.resolve?.call(this, createImageBitmap(this.canvas))
-      }
+  constructor(max_workers: number) {
+    super(max_workers)
+  }
+
+  private onmessage(event: MessageEvent) {
+    const { id, upscaled } = event.data
+    if (!isImageBitmap(upscaled)) throw Error("expected upscaled to be an 'ImageBitmap'")
+    const result = this.pending.get(id)
+    if (!result) throw Error("upscaled result is not pending")
+    this.canvas.getContext("2d")?.drawImage(upscaled, result.x, result.y)
+    this.pending.delete(id)
+    if (this.pending.size == 0) {
+      this.resolve?.call(this, createImageBitmap(this.canvas))
     }
   }
 
@@ -95,20 +101,24 @@ class upscaleWorker implements Upscaler {
       this.canvas.width = bitmap.width * 2
       this.canvas.height = bitmap.height * 2
       const canvas_list = canvasListFromBitmap(bitmap)
-      canvas_list.forEach(canvas => {
+      canvas_list.forEach(async canvas => {
         const id = this.id++
         this.pending.set(id, canvas)
-        this.worker.postMessage({
+        if (this.created_workers < this.max_workers) {
+          this.created_workers++
+          const worker = new Worker.default()
+          worker.onmessage = this.onmessage.bind(this)
+          this.workers.push(worker)
+        }
+        const worker = await this.getWorker()
+        worker.postMessage({
           id,
           image: canvas.element.getContext("2d")?.getImageData(0, 0, 200, 200),
           denoiseModel: options.denoiseModel
         })
+        this.putWorker(worker)
       })
     })
-  }
-
-  public terminate() {
-    this.worker.terminate()
   }
 }
 

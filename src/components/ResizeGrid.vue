@@ -11,7 +11,7 @@ import { defineComponent, ref } from "vue"
 import { UpscaleWorker } from "../image/worker"
 
 const resultcanvas = ref()
-const upscaler = new UpscaleWorker()
+const upscaler = new UpscaleWorker(4)
 
 const handleChange = async (event: Event) => {
   const files = (event.target as HTMLInputElement).files ?? []
@@ -25,6 +25,7 @@ const handleChange = async (event: Event) => {
   canvas.width = result.width
   canvas.height = result.height
   canvas.getContext("bitmaprenderer")?.transferFromImageBitmap(result)
+  upscaler.terminate()
 };
 
 export default defineComponent({
