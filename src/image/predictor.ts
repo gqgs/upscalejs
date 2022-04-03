@@ -1,10 +1,12 @@
 import * as ort from "onnxruntime-web"
 
 export default class Predictor {
+  base_url: string
   models: Map<string, Promise<ort.InferenceSession>> = new Map<string, Promise<ort.InferenceSession>>()
 
-  constructor () {
-    ort.env.wasm.wasmPaths = `${import.meta.env.BASE_URL}js/`
+  constructor (base_url: string) {
+    this.base_url = base_url
+    ort.env.wasm.wasmPaths = `${base_url}js/`
   }
 
   private async loadModel(denoiseModel: string): Promise<ort.InferenceSession> {
@@ -12,7 +14,7 @@ export default class Predictor {
     if (cached_model) {
       return cached_model
     }
-    const path = `${import.meta.env.BASE_URL}models/up2x-latest-${denoiseModel}.onnx`
+    const path = `${this.base_url}models/up2x-latest-${denoiseModel}.onnx`
     const model = ort.InferenceSession.create(path, {
       executionProviders: ["wasm"],
       graphOptimizationLevel: "all",

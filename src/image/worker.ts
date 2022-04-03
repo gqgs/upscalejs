@@ -5,12 +5,15 @@ interface Options {
   maxInternalWorkers?: number
   // The model that will be used for upscaling the image.
   denoiseModel?: "no-denoise" | "conservative" | "denoise1x" | "denoise2x" | "denoise3x"
+  // Environment base url (i.e. root of public path).
+  base?: string
 }
   
 const defaultOptions = {
   maxWorkers: 1,
   maxInternalWorkers: 4,
-  denoiseModel: "conservative"
+  denoiseModel: "conservative",
+  base: import.meta.env.BASE_URL,
 }
 
 interface Terminator {
@@ -120,7 +123,8 @@ class upscaleWorker extends WorkerPool<Worker> {
         worker.postMessage({
           id,
           image: canvas.element.getContext("2d")?.getImageData(0, 0, 200, 200),
-          denoiseModel: this.options.denoiseModel
+          denoiseModel: this.options.denoiseModel,
+          base: this.options.base
         })
         this.putWorker(worker)
       })
