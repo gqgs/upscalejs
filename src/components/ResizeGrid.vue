@@ -22,7 +22,7 @@
           </div>
         </div>
       </div>
-      <div class="file is-white is-medium is-6 column">
+      <div class="file is-white is-medium is-6 column" @dragenter.prevent @dragover.prevent @drop.prevent="handleDrop">
       <label class="file-label is-justify-content-flex-start">
         <input class="file-input" type="file" name="resume" @change="handleChange" :disabled="upscaling">
         <span class="file-cta">
@@ -60,9 +60,16 @@ const active = ref(false)
 const input = ref("")
 const resultcanvas = ref()
 
-const handleChange = async (event: Event) => {
-  const files = (event.target as HTMLInputElement).files ?? []
-  if (files.length === 0) {
+const handleDrop = (event: DragEvent) => {
+  upscale(event.dataTransfer?.files)
+}
+
+const handleChange = (event: Event) => {
+  upscale((event.target as HTMLInputElement).files)
+};
+
+const upscale = async (files?: FileList | null | undefined) => {
+  if (!files || files.length === 0) {
     return
   }
   upscaling.value = true
@@ -79,7 +86,7 @@ const handleChange = async (event: Event) => {
   canvas.getContext("bitmaprenderer")?.transferFromImageBitmap(result)
   upscaler.terminate()
   upscaling.value = false
-};
+}
 
 export default defineComponent({
   setup () {
@@ -90,7 +97,8 @@ export default defineComponent({
       upscaling,
       models,
       model,
-      active
+      active,
+      handleDrop,
     }
   }
 })
