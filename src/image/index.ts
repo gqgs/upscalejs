@@ -46,7 +46,7 @@ export class Upscaler {
   private id = 0
   private pending = new Map<number, Canvas>()
   private worker = new Worker.default()
-  private resolve?: (canvas: HTMLCanvasElement) => void
+  private resolve?: (canvas: Promise<ImageBitmap>) => void
 
   constructor() {
     this.worker.onmessage = (event: MessageEvent) => {
@@ -58,12 +58,12 @@ export class Upscaler {
       ctx?.drawImage(upscaled, result.x, result.y)
       this.pending.delete(id)
       if (this.pending.size == 0) {
-        this.resolve?.call(this, this.canvas)
+        this.resolve?.call(this, createImageBitmap(this.canvas))
       }
     }
   }
 
-  public upscale(bitmap: ImageBitmap, options: Options = defaultOptions): Promise<HTMLCanvasElement> {
+  public upscale(bitmap: ImageBitmap, options: Options = defaultOptions): Promise<ImageBitmap> {
     return new Promise(resolve => {
       this.resolve = resolve
       this.canvas.width = bitmap.width * 2
@@ -79,6 +79,10 @@ export class Upscaler {
         })
       })
     })
+  }
+
+  public terminate() {
+    this.worker.terminate()
   }
 }
 

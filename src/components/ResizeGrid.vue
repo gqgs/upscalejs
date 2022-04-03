@@ -24,7 +24,7 @@ const handleChange = async (event: Event) => {
   const canvas = resultcanvas.value as HTMLCanvasElement
   canvas.width = result.width
   canvas.height = result.height
-  canvas.getContext("2d")?.drawImage(result, 0, 0, result.width, result.height)
+  canvas.getContext("bitmaprenderer")?.transferFromImageBitmap(result)
 };
 
 export default defineComponent({
