@@ -1,5 +1,3 @@
-const Worker = await import("./upscale.worker?worker")
-
 interface Options {
   // Max number of workers that will be created for multiple images.
   maxWorkers?: number
@@ -113,6 +111,7 @@ class upscaleWorker extends WorkerPool<Worker> {
         this.pending.set(id, canvas)
         if (this.created_workers < this.options.maxInternalWorkers) {
           this.created_workers++
+          const Worker = await import("./upscale.worker?worker")
           const worker = new Worker.default()
           worker.onmessage = this.onmessage.bind(this)
           this.workers.push(worker)
