@@ -114,8 +114,9 @@ class upscaleWorker extends WorkerPool<Worker> {
         this.pending.set(id, canvas)
         if (this.created_workers < this.options.maxInternalWorkers) {
           this.created_workers++
-          const Worker = await import("./upscale.worker?worker")
-          const worker = new Worker.default()
+          const worker = new Worker(new URL("./upscale.worker", import.meta.url), {
+            type: "module"
+          })
           worker.onmessage = this.onmessage.bind(this)
           this.workers.push(worker)
         }
