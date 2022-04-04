@@ -69,7 +69,7 @@ export class UpscaleWorker extends WorkerPool<upscaleWorker> {
       this.workers.push(new upscaleWorker(this.options))
     }
     const worker = await this.getWorker()
-    const result = worker.upscale(bitmap)
+    const result = await worker.upscale(bitmap)
     this.putWorker(worker)
     return result
   }

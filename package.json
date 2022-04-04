@@ -1,6 +1,6 @@
 {
   "name": "upscalejs",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Upscale images using super resolution AI models",
   "main": "src/image/worker.ts",
   "scripts": {
