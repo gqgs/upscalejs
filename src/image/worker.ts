@@ -13,7 +13,7 @@ const defaultOptions = {
   maxWorkers: 1,
   maxInternalWorkers: 4,
   denoiseModel: "conservative",
-  base: import.meta.env.BASE_URL,
+  base: "/",
 }
 
 interface Terminator {

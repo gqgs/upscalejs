@@ -77,6 +77,7 @@ const upscale = async (files?: FileList | null | undefined) => {
   const bitmap = await createImageBitmap(file)
   input.value = URL.createObjectURL(file)
   const upscaler = new UpscaleWorker({
+    base: import.meta.env.BASE_URL,
     denoiseModel: model,
   })
   const result = await upscaler.upscale(bitmap)
