@@ -16,7 +16,7 @@ const defaultOptions = {
   maxWorkers: 1,
   maxInternalWorkers: 4,
   denoiseModel: "conservative",
-  base: "/",
+  base: window.location.href,
 }
 
 interface Terminator {
@@ -84,6 +84,8 @@ interface Canvas {
   element: HTMLCanvasElement
 }
 
+import Worker from "./upscale.worker?worker&inline"
+
 class upscaleWorker extends WorkerPool<Worker> {
   private id = 0
   private canvas: HTMLCanvasElement = document.createElement("canvas")
@@ -117,9 +119,7 @@ class upscaleWorker extends WorkerPool<Worker> {
         this.pending.set(id, canvas)
         if (this.created_workers < this.options.maxInternalWorkers) {
           this.created_workers++
-          const worker = new Worker(new URL("./upscale.worker", import.meta.url), {
-            type: "module"
-          })
+          const worker = new Worker()
           worker.onmessage = this.onmessage.bind(this)
           this.workers.push(worker)
         }

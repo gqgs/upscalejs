@@ -100,7 +100,6 @@ const upscale = async (files?: FileList | null) => {
     return
   }
   const upscaler = new UpscaleWorker({
-    base: import.meta.env.BASE_URL,
     denoiseModel: model,
   })
   try {

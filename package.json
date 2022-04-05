@@ -1,11 +1,21 @@
 {
   "name": "upscalejs",
-  "version": "0.1.3",
+  "version": "0.2.0",
+  "files": ["dist"],
+  "types": "./dist/image/worker.d.ts",
   "description": "Upscale images using super resolution AI models",
-  "main": "src/image/worker.ts",
+  "main": "./dist/upscalejs.umd.js.",
+  "module": "./dist/upscalejs.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/upscalejs.es.js",
+      "require": "./dist/upscalejs.umd.js"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
+    "lib": "vue-tsc --noEmit && vite build -c vite.lib.config.ts && vue-tsc -d --emitDeclarationOnly --outDir dist",
     "preview": "vite preview --port 5050",
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
