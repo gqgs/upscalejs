@@ -35,10 +35,13 @@
       </label>
     </div>
   </div>
-  <div class="columns">
-    <div class="is-12 column">
-      <img v-if="input" class="px-2" :src="input">
+  <div class="columns is-centered">
+    <div v-show="input" class="is-12 column">
+      <img class="px-2" :src="input">
       <canvas class="px-2" ref="resultcanvas" />
+    </div>
+    <div v-if="!input" class="is-6 column notification is-link is-light is-size-5">
+      Upload an image using the button above to upscale it using the selected model.
     </div>
   </div>
   <div v-if="upscaling || done" class="columns is-centered" :class="{'done': done}">
