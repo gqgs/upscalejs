@@ -32,11 +32,11 @@ module.exports = {
         return [{
           patterns: [
             {
-              from: "./node_modules/upscalejs/public/js/ort-*.wasm",
+              from: "./node_modules/upscalejs/dist/js/ort-*.wasm",
               to: "js/[name][ext]",
             },
             {
-              from: "./node_modules/upscalejs/public/models/*.onnx",
+              from: "./node_modules/upscalejs/dist/models/*.onnx",
               to: "models/[name][ext]",
             }
           ],
