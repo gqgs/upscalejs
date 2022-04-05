@@ -43,7 +43,7 @@
   </div>
   <div v-if="upscaling || done" class="columns is-centered" :class="{'done': done}">
     <div class="is-4 column">
-      <div :class="[done ? 'is-success':'is-info']" class="notification is-link is-size-3 has-text-weight-bold">
+      <div :class="[done ? 'is-success':'is-info']" class="notification is-link is-size-4 has-text-weight-bold">
         <span v-if="done">Done!</span>
         <span v-else>Upscaling. Please wait...</span>
       </div>
