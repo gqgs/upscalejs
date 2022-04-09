@@ -1,6 +1,3 @@
-<script setup>
-</script>
-
 <template>
   <div class="columns is-centered pt-6 pb-4 is-mobile">
       <div class="is-narrow column">
@@ -76,8 +73,8 @@
 </style>
 
 
-<script lang="ts">
-import { defineComponent, ref, watch } from "vue"
+<script setup lang="ts">
+import { ref, watch } from "vue"
 import { UpscaleWorker } from "../image/worker"
 import type { Model } from "../image/worker"
 
@@ -130,21 +127,5 @@ const upscale = async (files?: FileList | null) => {
 
 watch(model, (model) => {
   localStorage.setItem("model", model)
-})
-
-export default defineComponent({
-  setup () {
-    return {
-      input,
-      handleChange,
-      resultcanvas,
-      upscaling,
-      models,
-      model,
-      active,
-      handleDrop,
-      done,
-    }
-  }
 })
 </script>
