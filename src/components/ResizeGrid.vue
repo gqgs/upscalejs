@@ -3,10 +3,10 @@
 
 <template>
   <div class="columns is-centered pt-6 pb-4 is-mobile">
-      <div class="is-6 column has-text-right">
+      <div class="is-narrow column">
         <div class="dropdown" :class="{'is-active': active}">
           <div class="dropdown-trigger">
-            <button class="is-medium button is-white" aria-haspopup="true" aria-controls="dropdown-menu" @click="active = !active">
+            <button class="is-medium button has-background-white-ter" aria-haspopup="true" aria-controls="dropdown-menu" @click="active = !active">
               <span>{{model}}</span>
               <span class="icon is-small">
                 <ion-icon name="chevron-down-outline"></ion-icon>
@@ -14,7 +14,7 @@
             </button>
           </div>
           <div class="dropdown-menu" id="dropdown-menu" role="menu">
-            <div class="dropdown-content has-text-centered">
+            <div class="dropdown-content">
               <a href="#" :key='value' v-for="value in models" @click.prevent="model = value; active = false" class="dropdown-item">
               {{value}}
               </a>
@@ -22,8 +22,8 @@
           </div>
         </div>
       </div>
-      <div class="file is-white is-medium is-6 column" @dragenter.prevent @dragover.prevent @drop.prevent="handleDrop">
-      <label class="file-label is-justify-content-flex-start">
+      <div class="file is-white-ter is-medium column is-narrow" @dragenter.prevent @dragover.prevent @drop.prevent="handleDrop">
+      <label class="file-label">
         <input class="file-input" type="file" name="resume" @change="handleChange" :disabled="upscaling">
         <span class="file-cta">
           <ion-icon name="images-outline"></ion-icon>
@@ -33,6 +33,11 @@
           </span>
         </span>
       </label>
+    </div>
+    <div class="is-narrow column is-size-3">
+    <a href="https://github.com/gqgs/upscalejs" target="_blank">
+    <ion-icon class="pt-3" id="github" name="logo-octocat"></ion-icon>
+    </a>
     </div>
   </div>
   <div class="columns is-centered">
