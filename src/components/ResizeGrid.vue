@@ -125,6 +125,10 @@ const upscale = async (files?: FileList | null) => {
   }
 }
 
+watch(input, (_, old_input) => {
+  URL.revokeObjectURL(old_input)
+})
+
 watch(model, (model) => {
   localStorage.setItem("model", model)
 })
