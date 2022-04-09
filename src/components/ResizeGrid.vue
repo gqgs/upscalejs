@@ -60,6 +60,12 @@
 </template>
 
 <style scoped>
+@media (prefers-color-scheme: dark) {
+  #github {
+    color: white;
+  }
+}
+
 .done {
   animation: done 3s forwards;
   animation-iteration-count: 1;
