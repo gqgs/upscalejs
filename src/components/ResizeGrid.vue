@@ -72,11 +72,12 @@
 
 
 <script lang="ts">
-import { defineComponent, ref } from "vue"
+import { defineComponent, ref, watch } from "vue"
 import { UpscaleWorker } from "../image/worker"
+import type { Model } from "../image/worker"
 
 const models = ["no-denoise", "conservative", "denoise1x", "denoise2x", "denoise3x"]
-const model = "conservative"
+const model = ref(localStorage.getItem("model") || "conservative")
 const upscaling = ref(false)
 const active = ref(false)
 const done = ref(false)
@@ -103,7 +104,7 @@ const upscale = async (files?: FileList | null) => {
     return
   }
   const upscaler = new UpscaleWorker({
-    denoiseModel: model,
+    denoiseModel: model.value as Model,
   })
   try {
     upscaling.value = true
@@ -121,6 +122,10 @@ const upscale = async (files?: FileList | null) => {
     done.value = true
   }
 }
+
+watch(model, (model) => {
+  localStorage.setItem("model", model)
+})
 
 export default defineComponent({
   setup () {
