@@ -145,11 +145,22 @@ const canvasListFromBitmap = (bitmap: ImageBitmap): Canvas[] => {
       const canvas = document.createElement("canvas")
       canvas.width = 200
       canvas.height = 200
-      const ctx = canvas.getContext("2d")
-      ctx?.drawImage(bitmap, x, y, 200, 200, 0, 0, 200, 200)
+
+      let sx = x, sy = y
+      if (x + 200 > bitmap.width) {
+        const padding = width - bitmap.width
+        sx -= padding
+      }
+      if (y + 200 > bitmap.height) {
+        const padding = height - bitmap.height
+        sy -= padding
+      }
+
+      canvas.getContext("2d")?.drawImage(bitmap, sx, sy, 200, 200, 0, 0, 200, 200)
+
       canvas_list.push({
-        x: x * 2,
-        y: y * 2,
+        x: sx * 2,
+        y: sy * 2,
         element: canvas,
       })
     }
