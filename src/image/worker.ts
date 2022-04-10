@@ -137,11 +137,24 @@ class upscaleWorker extends WorkerPool<Worker> {
 }
 
 const canvasListFromBitmap = (bitmap: ImageBitmap): Canvas[] => {
+  if (bitmap.width == 200 && bitmap.height == 200) {
+    // fast path for best case
+    const canvas = document.createElement("canvas")
+    canvas.width = bitmap.width
+    canvas.height = bitmap.height
+    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, 200, 200)
+    return [{
+      x: 0,
+      y: 0,
+      element: canvas
+    }]
+  }
+
   const canvas_list: Canvas[] = []
   const width = Math.ceil(bitmap.width / 200) * 200
   const height = Math.ceil(bitmap.height / 200) * 200
-  for (let x = 0; x < width; x += 200) {
-    for (let y = 0; y < height; y += 200) {
+  for (let x = 0; x < width; x += 180) {
+    for (let y = 0; y < height; y += 180) {
       const canvas = document.createElement("canvas")
       canvas.width = 200
       canvas.height = 200
@@ -157,7 +170,6 @@ const canvasListFromBitmap = (bitmap: ImageBitmap): Canvas[] => {
       }
 
       canvas.getContext("2d")?.drawImage(bitmap, sx, sy, 200, 200, 0, 0, 200, 200)
-
       canvas_list.push({
         x: sx * 2,
         y: sy * 2,
