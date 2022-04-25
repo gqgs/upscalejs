@@ -2,6 +2,8 @@
   "extends": "@vue/tsconfig/tsconfig.web.json",
   "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
   "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
     "types" : ["node"],
     "baseUrl": ".",
     "paths": {

@@ -6,19 +6,35 @@ import { config } from "./vite.options"
 export default defineConfig({
   ...config,
   build: {
-    lib: {
-      entry: path.resolve(__dirname, "src/image/worker.ts"),
-      name: "upscalejs",
-      fileName: (format) => `upscalejs.${format}.js`
-    },
     rollupOptions: {
-      external: ["vue"],
-      output: {
-        exports: "named",
-        globals: {
-          vue: "Vue"
-        }
-      }
+      input: {
+        "upscalejs": path.resolve(__dirname, "src/image/worker.ts"),
+        "upscalejs-node": path.resolve(__dirname, "src/node/upscaler.ts"),
+      },
+      external: ["vue", "canvas", "onnxruntime-node"],
+      preserveEntrySignatures: "strict",
+      output: [
+        {
+          exports: "named",
+          globals: {
+            vue: "Vue",
+          },
+          name: "upscalejs",
+          entryFileNames: "[name].[format].js",
+          chunkFileNames: "[name].js",
+          assetFileNames: "[name].[ext]",
+          format: "esm",
+        },
+        {
+          exports: "named",
+          globals: {
+            vue: "Vue"
+          },
+          name: "upscalejs-node",
+          entryFileNames: "[name].[format].js",
+          format: "cjs",
+        },
+      ],
     }
   }
 });

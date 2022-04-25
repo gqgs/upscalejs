@@ -1,23 +1,10 @@
-
-export type Model = "no-denoise" | "conservative" | "denoise1x" | "denoise2x" | "denoise3x"
-
-interface Options {
-  // Max number of workers that will be created for multiple images.
-  maxWorkers?: number
-  // Max number of workers that will be created for each image.
-  maxInternalWorkers?: number
-  // The model that will be used for upscaling images.
-  denoiseModel?: Model
-  // Environment base url (i.e. root of public path).
-  base?: string
-}
-  
-const defaultOptions = {
-  maxWorkers: 1,
-  maxInternalWorkers: 4,
-  denoiseModel: "conservative",
-  base: window.location.href,
-}
+import { canvasListFromImageData } from "./canvas"
+import type { Canvas, ImageSource } from "./canvas"
+import { defaultOptions } from "./options"
+import type { Model, Options } from "./options"
+import Worker from "./upscale.worker?worker&inline"
+import { createCanvas } from "canvas"
+import type { Canvas as NodeCanvas } from "canvas"
 
 interface Terminator {
   terminate(): void
@@ -28,7 +15,7 @@ abstract class WorkerPool<worker extends Terminator> {
   protected created_workers = 0
   protected workers: worker[] = []
   private waitingForWorker: ((upscaler: worker) => void) [] = []
-  public abstract upscale(bitmap: ImageBitmap): Promise<ImageBitmap>
+  public abstract upscale(image: ImageSource): Promise<ImageData>
 
   constructor(options?: Options) {
     this.options = Object.assign(defaultOptions, options)
@@ -61,36 +48,28 @@ abstract class WorkerPool<worker extends Terminator> {
   }
 }
 
-export class UpscaleWorker extends WorkerPool<upscaleWorker> {
+export class Upscaler extends WorkerPool<upscaleWorker> {
   constructor(options?: Options) {
     super(options)
   }
 
-  public async upscale(bitmap: ImageBitmap): Promise<ImageBitmap> {
+  public async upscale(image: ImageSource): Promise<ImageData> {
     if (this.created_workers < this.options.maxWorkers) {
       this.created_workers++
       this.workers.push(new upscaleWorker(this.options))
     }
     const worker = await this.getWorker()
-    const result = await worker.upscale(bitmap)
+    const result = await worker.upscale(image)
     this.putWorker(worker)
     return result
   }
 }
 
-interface Canvas {
-  x: number
-  y: number
-  element: HTMLCanvasElement
-}
-
-import Worker from "./upscale.worker?worker&inline"
-
 class upscaleWorker extends WorkerPool<Worker> {
   private id = 0
-  private canvas: HTMLCanvasElement = document.createElement("canvas")
+  private canvas: NodeCanvas = createCanvas(0, 0)
   private pending = new Map<number, Canvas>()
-  private resolve?: (canvas: Promise<ImageBitmap>) => void
+  private resolve?: (canvas: Promise<ImageData>) => void
 
   constructor(options?: Options) {
     super(options)
@@ -98,22 +77,22 @@ class upscaleWorker extends WorkerPool<Worker> {
 
   private onmessage(event: MessageEvent) {
     const { id, upscaled } = event.data
-    if (!isImageBitmap(upscaled)) throw Error("expected upscaled to be an 'ImageBitmap'")
+    if (!isImageData(upscaled)) throw Error("expected upscaled to be an 'ImageData'")
     const result = this.pending.get(id)
     if (!result) throw Error("upscaled result is not pending")
-    this.canvas.getContext("2d")?.drawImage(upscaled, result.x, result.y)
+    this.canvas.getContext("2d").putImageData(upscaled, result.x, result.y)
     this.pending.delete(id)
     if (this.pending.size == 0) {
-      this.resolve?.call(this, createImageBitmap(this.canvas))
+      const imgdata = this.canvas.getContext("2d").getImageData(0, 0, this.canvas.width, this.canvas.height)
+      this.resolve?.call(this, Promise.resolve(imgdata))
     }
   }
 
-  public upscale(bitmap: ImageBitmap): Promise<ImageBitmap> {
+  public async upscale(image: ImageSource): Promise<ImageData> {
     return new Promise(resolve => {
       this.resolve = resolve
-      this.canvas.width = bitmap.width * 2
-      this.canvas.height = bitmap.height * 2
-      const canvas_list = canvasListFromBitmap(bitmap)
+      this.canvas = createCanvas(image.width * 2, image.height * 2)
+      const canvas_list = canvasListFromImageData(image)
       canvas_list.forEach(async canvas => {
         const id = this.id++
         this.pending.set(id, canvas)
@@ -126,7 +105,7 @@ class upscaleWorker extends WorkerPool<Worker> {
         const worker = await this.getWorker()
         worker.postMessage({
           id,
-          image: canvas.element.getContext("2d")?.getImageData(0, 0, 200, 200),
+          image: canvas.element.getContext("2d").getImageData(0, 0, 200, 200),
           denoiseModel: this.options.denoiseModel,
           base: this.options.base
         })
@@ -136,55 +115,15 @@ class upscaleWorker extends WorkerPool<Worker> {
   }
 }
 
-const canvasListFromBitmap = (bitmap: ImageBitmap): Canvas[] => {
-  if (bitmap.width == 200 && bitmap.height == 200) {
-    // fast path for best case
-    const canvas = document.createElement("canvas")
-    canvas.width = bitmap.width
-    canvas.height = bitmap.height
-    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, 200, 200)
-    return [{
-      x: 0,
-      y: 0,
-      element: canvas
-    }]
-  }
-
-  const canvas_list: Canvas[] = []
-  const width = Math.ceil(bitmap.width / 200) * 200
-  const height = Math.ceil(bitmap.height / 200) * 200
-  for (let x = 0; x < width; x += 180) {
-    for (let y = 0; y < height; y += 180) {
-      const canvas = document.createElement("canvas")
-      canvas.width = 200
-      canvas.height = 200
-
-      let sx = x, sy = y
-      if (x + 200 > bitmap.width) {
-        const padding = width - bitmap.width
-        sx -= padding
-      }
-      if (y + 200 > bitmap.height) {
-        const padding = height - bitmap.height
-        sy -= padding
-      }
-
-      canvas.getContext("2d")?.drawImage(bitmap, sx, sy, 200, 200, 0, 0, 200, 200)
-      canvas_list.push({
-        x: sx * 2,
-        y: sy * 2,
-        element: canvas,
-      })
-    }
-  }
-  return canvas_list
+const isImageData = (image: unknown): image is ImageData => {
+  const imgdata = image as ImageData
+  return imgdata.width > 0 && imgdata.height > 0
 }
 
-const isImageBitmap = (img: unknown): img is ImageBitmap => {
-  const bitmap = img as ImageBitmap
-  return bitmap.width > 0 && bitmap.height > 0
+export type {
+  Model
 }
 
 export default {
-  UpscaleWorker
+  Upscaler
 }

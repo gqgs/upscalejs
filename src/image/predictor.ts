@@ -1,12 +1,20 @@
-import * as ort from "onnxruntime-web"
+import type * as ort from "onnxruntime-common"
+import { createImageData } from "canvas"
+
+interface Ort {
+  env: ort.Env
+  InferenceSession: ort.InferenceSessionFactory
+  Tensor: ort.TensorConstructor
+}
 
 export default class Predictor {
-  base_url: string
-  models: Map<string, Promise<ort.InferenceSession>> = new Map<string, Promise<ort.InferenceSession>>()
+  private ort: Ort
+  private baseURL: string
+  private models: Map<string, Promise<ort.InferenceSession>> = new Map<string, Promise<ort.InferenceSession>>()
 
-  constructor (base_url: string) {
-    this.base_url = base_url
-    ort.env.wasm.wasmPaths = `${base_url}js/`
+  constructor (ort: Ort, baseURL: string) {
+    this.ort = ort
+    this.baseURL = baseURL
   }
 
   private async loadModel(denoiseModel: string): Promise<ort.InferenceSession> {
@@ -14,17 +22,14 @@ export default class Predictor {
     if (cached_model) {
       return cached_model
     }
-    const path = `${this.base_url}models/up2x-latest-${denoiseModel}.onnx`
-    const model = ort.InferenceSession.create(path, {
-      executionProviders: ["wasm"],
-      graphOptimizationLevel: "all",
-      executionMode: "parallel"
-    })
+    this.ort.env.wasm.wasmPaths = `${this.baseURL}js/`
+    const path = `${this.baseURL}models/up2x-latest-${denoiseModel}.onnx`
+    const model = this.ort.InferenceSession.create(path)
     this.models.set(denoiseModel, model)
     return model
   }
 
-  public async predict (image: ImageData, denoiseModel: string): Promise<ImageBitmap> {
+  public async predict (image: ImageData, denoiseModel: string): Promise<ImageData> {
     const red = new Array<number>()
     const green = new Array<number>()
     const blue = new Array<number>()
@@ -38,7 +43,7 @@ export default class Predictor {
     for (let i = 0; i < float32Data.length; i++) {
       float32Data[i] = transposed[i] / 255.0
     }
-    const tensor = new ort.Tensor("float32", float32Data, [1, 3, 200, 200])
+    const tensor = new this.ort.Tensor("float32", float32Data, [1, 3, 200, 200])
     const session = await this.loadModel(denoiseModel)
     const feeds = { input_1: tensor }
     const results = await session.run(feeds)
@@ -51,7 +56,6 @@ export default class Predictor {
         rgbaArray[j] = resultData[i] ?? 255
       }
     }
-    const bitmap = new ImageData(rgbaArray, 400, 400)
-    return createImageBitmap(bitmap)
+    return createImageData(rgbaArray, 400, 400)
   }
 }

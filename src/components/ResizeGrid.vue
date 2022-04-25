@@ -81,8 +81,8 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue"
-import { UpscaleWorker } from "../image/worker"
-import type { Model } from "../image/worker"
+import { Upscaler } from "../image/worker"
+import type { Model } from "../image/options"
 
 const models = ["no-denoise", "conservative", "denoise1x", "denoise2x", "denoise3x"]
 const model = ref(localStorage.getItem("model") || "conservative")
@@ -111,7 +111,7 @@ const upscale = async (files?: FileList | null) => {
   if (!files || files.length === 0) {
     return
   }
-  const upscaler = new UpscaleWorker({
+  const upscaler = new Upscaler({
     denoiseModel: model.value as Model,
   })
   try {
@@ -123,7 +123,7 @@ const upscale = async (files?: FileList | null) => {
     input.value = URL.createObjectURL(file)
     const result = await upscaler.upscale(bitmap)
     const canvas = resultcanvas.value as HTMLCanvasElement
-    canvas.getContext("2d")?.drawImage(result, 0, 0, result.width, result.height)
+    canvas.getContext("2d")?.putImageData(result, 0, 0)
   } finally {
     upscaler.terminate()
     upscaling.value = false

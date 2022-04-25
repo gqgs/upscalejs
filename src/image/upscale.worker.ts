@@ -1,3 +1,4 @@
+import * as ort from "onnxruntime-web"
 import Predictor from "./predictor"
 
 let predictor: Predictor | null
@@ -8,7 +9,7 @@ onmessage = async (event: MessageEvent) => {
   const denoiseModel = event.data.denoiseModel
   const base = event.data.base
 
-  if (!predictor) predictor = new Predictor(base)
+  if (!predictor) predictor = new Predictor(ort, base)
 
   const upscaled = await predictor.predict(image, denoiseModel)
 

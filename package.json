@@ -1,15 +1,17 @@
 {
   "name": "upscalejs",
-  "version": "0.2.2",
-  "files": ["dist"],
+  "version": "1.0.0",
+  "files": [
+    "dist"
+  ],
   "types": "./dist/image/worker.d.ts",
   "description": "Upscale images using super resolution AI models",
-  "main": "./dist/upscalejs.umd.js.",
-  "module": "./dist/upscalejs.es.js",
+  "browser": "./dist/upscalejs.es.js.",
+  "main": "./dist/upscalejs-node.cjs.js.",
   "exports": {
     ".": {
       "import": "./dist/upscalejs.es.js",
-      "require": "./dist/upscalejs.umd.js"
+      "require": "./dist/upscalejs-node.cjs.js"
     }
   },
   "scripts": {
@@ -18,9 +20,11 @@
     "lib": "vue-tsc --noEmit && vite build -c vite.lib.config.ts && vue-tsc -d --emitDeclarationOnly --outDir dist",
     "preview": "vite preview --port 5050",
     "typecheck": "vue-tsc --noEmit",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
+    "test": "vitest --run --threads false"
   },
   "dependencies": {
+    "canvas": "^2.9.1",
     "vue": "^3.2.31"
   },
   "keywords": [
@@ -42,10 +46,12 @@
     "@vue/tsconfig": "^0.1.3",
     "eslint": "^8.5.0",
     "eslint-plugin-vue": "^8.2.0",
+    "onnxruntime-node": "^1.11.0",
     "onnxruntime-web": "^1.11.0",
-    "prettier": "^2.5.1",
+    "prettier": "^2.6.2",
     "typescript": "~4.6.3",
     "vite": "^2.9.1",
-    "vue-tsc": "^0.33.9"
+    "vitest": "^0.9.4",
+    "vue-tsc": "^0.34.10"
   }
 }
