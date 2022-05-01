@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.0.0](https://github.com/gqgs/upscalejs/compare/v0.2.0...v1.0.0) (2022-05-01)
+
+
+### Features
+
+* node support ([1abb110](https://github.com/gqgs/upscalejs/commit/1abb1100dedfda89b376fe4c71e04abe871f40fc)), closes [#1](https://github.com/gqgs/upscalejs/issues/1)
+
+
+### Bug Fixes
+
+* **worker:** use overlapping tiles to decrease artifacts ([3b98a5c](https://github.com/gqgs/upscalejs/commit/3b98a5c87d546a3bddcae409eebcf059074cfb05))
+
 ## 0.2.0 (2022-04-05)
 
 
