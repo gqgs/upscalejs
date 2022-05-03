@@ -68,6 +68,8 @@ module.exports = {
 }
 ```
 
+Current available models were trained in anime images and are based on work done in the [Real-CUGAN](https://github.com/bilibili/ailab/tree/main/Real-CUGAN) project.
+
 ## Project Setup
 
 ```sh
