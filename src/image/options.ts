@@ -1,4 +1,4 @@
-export type Model = "no-denoise" | "conservative" | "denoise1x" | "denoise2x" | "denoise3x"
+export type Model = "no-denoise" | "conservative" | "denoise1x" | "denoise2x" | "denoise3x" | "pro-no-denoise" | "pro-conservative" | "pro-denoise3x"
 
 export interface Options {
   // Max number of workers that will be created for multiple images.

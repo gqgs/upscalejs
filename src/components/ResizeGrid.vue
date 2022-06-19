@@ -84,7 +84,7 @@ import { ref, watch } from "vue"
 import { Upscaler } from "../image/worker"
 import type { Model } from "../image/options"
 
-const models = ["no-denoise", "conservative", "denoise1x", "denoise2x", "denoise3x"]
+const models = ["no-denoise", "conservative", "denoise1x", "denoise2x", "denoise3x", "pro-no-denoise", "pro-conservative", "pro-denoise3x"]
 const model = ref(localStorage.getItem("model") || "conservative")
 const upscaling = ref(false)
 const active = ref(false)
