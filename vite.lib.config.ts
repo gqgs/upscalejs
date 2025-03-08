@@ -10,7 +10,7 @@ export default defineConfig({
       input: {
         "upscalejs": path.resolve(__dirname, "src/image/worker.ts")
       },
-      external: ["vue", "canvas", "onnxruntime-node"],
+      external: ["vue", "onnxruntime-web"],
       preserveEntrySignatures: "strict",
       output: [
         {
@@ -23,15 +23,6 @@ export default defineConfig({
           chunkFileNames: "[name].js",
           assetFileNames: "[name].[ext]",
           format: "esm",
-        },
-        {
-          exports: "named",
-          globals: {
-            vue: "Vue"
-          },
-          name: "upscalejs-node",
-          entryFileNames: "[name].[format].js",
-          format: "cjs",
         },
       ],
     }

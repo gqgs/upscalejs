@@ -23,7 +23,10 @@ export default class Predictor {
     }
     this.ort.env.wasm.wasmPaths = `${this.baseURL}js/`
     const path = `${this.baseURL}models/up2x-latest-${denoiseModel}.onnx`
-    const model = this.ort.InferenceSession.create(path)
+    const model = this.ort.InferenceSession.create(path, {
+      executionProviders: ["wasm"]
+    })
+
     this.models.set(denoiseModel, model)
     return model
   }

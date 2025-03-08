@@ -84,7 +84,7 @@ import { ref, watch } from "vue"
 import { Upscaler } from "../image/worker"
 import type { Model } from "../image/options"
 
-const models = ["no-denoise", "conservative", "denoise1x", "denoise2x", "denoise3x", "pro-no-denoise", "pro-conservative", "pro-denoise3x"]
+const models = ["no-denoise", "conservative", "denoise1x", "denoise2x", "denoise3x", "pro-no-denoise", "pro-conservative", "pro-denoise3x", "RealPLKSR"]
 const model = ref(localStorage.getItem("model") || "conservative")
 const upscaling = ref(false)
 const active = ref(false)
@@ -123,7 +123,6 @@ const upscale = async (files?: FileList | null) => {
     input.value = URL.createObjectURL(file)
     const result = await upscaler.upscale(bitmap)
     const canvas = resultcanvas.value as HTMLCanvasElement
-    console.log("result", result)
     canvas.getContext("2d")?.drawImage(result, 0, 0)
   } finally {
     upscaler.terminate()
