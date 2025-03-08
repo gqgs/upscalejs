@@ -1,27 +1,76 @@
 # upscalejs
 
-Image upscaling using super resolution AI models.
+Image upscaling in the browser using ONNX Runtime Web and super-resolution models.
 
-<p align="center">
-<img src="/src/assets/sample.png">
-</p>
+## v2 breaking changes
+
+Version 2 replaces the old Real-CUGAN model API with the browser pipeline used by 3x3 Generator:
+
+- Models are now `"6B"` (Real-ESRGAN anime 4x) and `"Swin2SR"` (balanced 2x).
+- `upscale()` returns an `ImageBitmap`.
+- Node/CJS support is not part of v2; the package is ESM/browser-first.
+- Model/runtime assets now live under `models/RealESRGAN`, `models/Swin2SR`, and `js`.
 
 ## Usage
 
 ```ts
 import { Upscaler } from "upscalejs"
 
-const upscaler = new Upscaler()
-const result = await upscaler.upscale(bitmap)
+const upscaler = new Upscaler({
+  base: "/",
+  model: "6B",
+  workerCount: 3,
+})
+
+const result = await upscaler.upscale(bitmap, {
+  targetSize: 400,
+  forceUpscale: true,
+  onProgress: percent => {
+    console.log(`${Math.round(percent)}%`)
+  },
+})
+
 const canvas = document.createElement("canvas")
 canvas.width = result.width
 canvas.height = result.height
-canvas.getContext("2d")?.putImageData(result, 0, 0)
+canvas.getContext("2d")?.drawImage(result, 0, 0)
+result.close()
+
+await upscaler.release()
+upscaler.terminate()
 ```
 
-You will need to copy the models and onnxruntime wasm files to your public folder e.g.:
+## Options
+
 ```ts
-const CopyPlugin = require("copy-webpack-plugin");
+type Model = "6B" | "Swin2SR"
+
+interface Options {
+  workerCount?: number
+  maxWorkers?: number // Deprecated alias for workerCount.
+  base?: string
+  model?: Model
+  forceUpscale?: boolean
+  numThreads?: number
+  downscaleThreshold?: number
+}
+
+interface UpscaleOptions {
+  targetSize?: number
+  model?: Model
+  forceUpscale?: boolean
+  onProgress?: (percent: number) => void
+}
+```
+
+Keep `numThreads` at `1` unless you have tested your target browsers carefully. Browser WASM multithreading can produce unstable results under high concurrency.
+
+## Assets
+
+Copy the model and ONNX Runtime files to your public directory. The `base` option must point to that public root.
+
+```js
+const CopyPlugin = require("copy-webpack-plugin")
 
 module.exports = {
   chainWebpack: config => {
@@ -32,21 +81,39 @@ module.exports = {
         return [{
           patterns: [
             {
-              from: "./node_modules/upscalejs/dist/js/ort-*.wasm",
+              context: "./node_modules/upscalejs/dist/js",
+              from: "ort-wasm-simd-threaded.*",
               to: "js/[name][ext]",
             },
             {
-              from: "./node_modules/upscalejs/dist/models/*.onnx",
-              to: "models/[name][ext]",
+              context: "./node_modules/upscalejs/dist/models",
+              from: "**/*",
+              to: "models/[path][name][ext]",
             }
           ],
         }]
       })
-   }
+  }
 }
 ```
 
-Current available models were trained in anime images and are based on work done in the [Real-CUGAN](https://github.com/bilibili/ailab/tree/main/Real-CUGAN) project.
+For Vite:
+
+```ts
+import { defineConfig } from "vite"
+import { resolve } from "node:path"
+import { cpSync } from "node:fs"
+
+export default defineConfig({
+  plugins: [{
+    name: "copy-upscalejs-assets",
+    closeBundle() {
+      cpSync(resolve("node_modules/upscalejs/dist/js"), resolve("dist/js"), { recursive: true })
+      cpSync(resolve("node_modules/upscalejs/dist/models"), resolve("dist/models"), { recursive: true })
+    },
+  }],
+})
+```
 
 ## Project Setup
 
@@ -60,19 +127,13 @@ npm install
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+### Type-Check, Compile and Build Library
 
 ```sh
-npm run build
+npm run lib
 ```
 
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
-
-### Test with [Vitest](https://github.com/vitest-dev/vitest)
+### Test
 
 ```sh
 npm run test

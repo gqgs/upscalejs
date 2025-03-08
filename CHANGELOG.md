@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0](https://github.com/gqgs/upscalejs/compare/v1.1.0...v2.0.0) (2026-04-13)
+
+### ⚠ BREAKING CHANGES
+
+* replace the v1 Real-CUGAN denoise models with Real-ESRGAN 6B and Swin2SR models
+* `upscale()` now accepts per-call options such as `targetSize`, `model`, `forceUpscale`, and `onProgress`
+* v2 is browser/ESM focused and no longer publishes the old CJS Node entrypoint
+
+### Features
+
+* add tiled ONNX Runtime Web upscaling pipeline from 3x3 Generator
+* add worker-pool controls and stable WASM threading defaults
+* ship v2 model and ONNX Runtime WASM assets
+
 ## [1.1.0](https://github.com/gqgs/upscalejs/compare/v1.0.0...v1.1.0) (2022-06-19)
 
 

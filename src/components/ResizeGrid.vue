@@ -55,7 +55,7 @@
     </div>
   </div>
   <div class="columns">
-     <div class="is-10 is-offset-1 column"><progress v-if="upscaling" class="progress" max="100"></progress></div>
+     <div class="is-10 is-offset-1 column"><progress v-if="upscaling" class="progress" max="100" :value="progress"></progress></div>
   </div>
 </template>
 
@@ -84,12 +84,14 @@ import { ref, watch } from "vue"
 import { Upscaler } from "../image/worker"
 import type { Model } from "../image/options"
 
-const models = ["no-denoise", "conservative", "denoise1x", "denoise2x", "denoise3x", "pro-no-denoise", "pro-conservative", "pro-denoise3x", "RealPLKSR"]
-const model = ref(localStorage.getItem("model") || "conservative")
+const models: Model[] = ["6B", "Swin2SR"]
+const storedModel = localStorage.getItem("model")
+const model = ref<Model>(storedModel === "6B" || storedModel === "Swin2SR" ? storedModel : "6B")
 const upscaling = ref(false)
 const active = ref(false)
 const done = ref(false)
 const input = ref("")
+const progress = ref(0)
 const resultcanvas = ref()
 
 const handleDrop = (event: DragEvent) => {
@@ -102,8 +104,9 @@ const handleChange = (event: Event) => {
 
 const createImagePreview = (bitmap: ImageBitmap) => {
   const canvas = resultcanvas.value as HTMLCanvasElement
-  canvas.width = bitmap.width * 2
-  canvas.height = bitmap.height * 2
+  const factor = model.value === "6B" ? 4 : 2
+  canvas.width = bitmap.width * factor
+  canvas.height = bitmap.height * factor
   canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
 }
 
@@ -112,16 +115,22 @@ const upscale = async (files?: FileList | null) => {
     return
   }
   const upscaler = new Upscaler({
-    denoiseModel: model.value as Model,
+    model: model.value,
   })
   try {
     upscaling.value = true
     done.value = false
+    progress.value = 0
     const file = files[0]
     const bitmap = await createImageBitmap(file)
     createImagePreview(bitmap)
     input.value = URL.createObjectURL(file)
-    const result = await upscaler.upscale(bitmap)
+    const result = await upscaler.upscale(bitmap, {
+      model: model.value,
+      onProgress: percent => {
+        progress.value = percent
+      }
+    })
     const canvas = resultcanvas.value as HTMLCanvasElement
     canvas.getContext("2d")?.drawImage(result, 0, 0)
   } finally {
@@ -135,7 +144,7 @@ watch(input, (_, old_input) => {
   URL.revokeObjectURL(old_input)
 })
 
-watch(model, (model) => {
-  localStorage.setItem("model", model)
+watch(model, (nextModel) => {
+  localStorage.setItem("model", nextModel)
 })
 </script>
