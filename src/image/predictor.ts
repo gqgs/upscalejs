@@ -1,5 +1,4 @@
 import type * as ort from "onnxruntime-common"
-import { createImageData } from "canvas"
 
 interface Ort {
   env: ort.Env
@@ -29,7 +28,7 @@ export default class Predictor {
     return model
   }
 
-  public async predict (image: ImageData, denoiseModel: string): Promise<ImageData> {
+  public async predict (image: ImageData, denoiseModel: string): Promise<ImageBitmap> {
     const red = new Array<number>()
     const green = new Array<number>()
     const blue = new Array<number>()
@@ -56,6 +55,7 @@ export default class Predictor {
         rgbaArray[j] = resultData[i] ?? 255
       }
     }
-    return createImageData(rgbaArray, 400, 400)
+    const bitmap = new ImageData(rgbaArray, 400, 400)
+    return createImageBitmap(bitmap)
   }
 }

@@ -8,8 +8,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        "upscalejs": path.resolve(__dirname, "src/image/worker.ts"),
-        "upscalejs-node": path.resolve(__dirname, "src/node/upscaler.ts"),
+        "upscalejs": path.resolve(__dirname, "src/image/worker.ts")
       },
       external: ["vue", "canvas", "onnxruntime-node"],
       preserveEntrySignatures: "strict",

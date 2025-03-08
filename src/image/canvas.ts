@@ -1,6 +1,3 @@
-import { createCanvas } from "canvas";
-import type { Canvas as NodeCanvas } from "canvas"
-
 export interface ImageSource {
   width: number;
   height: number;
@@ -9,13 +6,13 @@ export interface ImageSource {
 export interface Canvas {
   x: number;
   y: number;
-  element: NodeCanvas;
+  element: OffscreenCanvas
 }
 
-export const canvasListFromImageData = (image: ImageSource): Canvas[] => {
+export const canvasListFromImageData = (image: ImageBitmap): Canvas[] => {
   if (image.width == 200 && image.height == 200) {
     // fast path for best case
-    const canvas = createCanvas(image.width, image.height);
+    const canvas = new OffscreenCanvas(image.width, image.height)
     canvas.getContext("2d")?.drawImage(image, 0, 0, 200, 200);
     return [
       {
@@ -31,7 +28,7 @@ export const canvasListFromImageData = (image: ImageSource): Canvas[] => {
   const height = Math.ceil(image.height / 200) * 200;
   for (let x = 0; x < width; x += 180) {
     for (let y = 0; y < height; y += 180) {
-      const canvas = createCanvas(200, 200);
+      const canvas = new OffscreenCanvas(200, 200)
 
       let sx = x, sy = y;
       if (x + 200 > image.width) {

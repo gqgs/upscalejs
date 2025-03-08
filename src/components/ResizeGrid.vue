@@ -123,7 +123,8 @@ const upscale = async (files?: FileList | null) => {
     input.value = URL.createObjectURL(file)
     const result = await upscaler.upscale(bitmap)
     const canvas = resultcanvas.value as HTMLCanvasElement
-    canvas.getContext("2d")?.putImageData(result, 0, 0)
+    console.log("result", result)
+    canvas.getContext("2d")?.drawImage(result, 0, 0)
   } finally {
     upscaler.terminate()
     upscaling.value = false
