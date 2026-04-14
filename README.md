@@ -10,10 +10,10 @@ Image upscaling in the browser using ONNX Runtime Web and super-resolution model
 
 Version 2 replaces the old Real-CUGAN model API with some new models.
 
-- Models are now `"6B"` (Real-ESRGAN anime 4x) and `"Swin2SR"` (balanced 2x).
+- Models are now `"6B"` (Real-ESRGAN anime 4x), `"HFA2kShallowESRGAN"` (anime 2x), and `"Swin2SR"` (balanced 2x).
 - `upscale()` returns an `ImageBitmap`.
 - Node/CJS support is not part of v2; the package is ESM/browser-first.
-- Model/runtime assets now live under `models/RealESRGAN`, `models/Swin2SR`, and `js`.
+- Model/runtime assets now live under `models/RealESRGAN`, `models/HFA2k`, `models/Swin2SR`, and `js`.
 
 ## Usage
 
@@ -47,7 +47,7 @@ upscaler.terminate()
 ## Options
 
 ```ts
-type Model = "6B" | "Swin2SR"
+type Model = "6B" | "HFA2kShallowESRGAN" | "Swin2SR"
 
 interface Options {
   workerCount?: number

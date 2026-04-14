@@ -84,9 +84,11 @@ import { ref, watch } from "vue"
 import { Upscaler } from "../image/worker"
 import type { Model } from "../image/options"
 
-const models: Model[] = ["6B", "Swin2SR"]
+const models: Model[] = ["6B", "HFA2kShallowESRGAN", "Swin2SR"]
 const storedModel = localStorage.getItem("model")
-const model = ref<Model>(storedModel === "6B" || storedModel === "Swin2SR" ? storedModel : "6B")
+const model = ref<Model>(
+  storedModel === "6B" || storedModel === "HFA2kShallowESRGAN" || storedModel === "Swin2SR" ? storedModel : "6B"
+)
 const upscaling = ref(false)
 const active = ref(false)
 const done = ref(false)

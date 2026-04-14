@@ -40,6 +40,13 @@ const getModelConfig = (model: Model, base: string) => {
       upscaleFactor: 2,
     }
   }
+  if (model === "HFA2kShallowESRGAN") {
+    return {
+      path: `${root}models/HFA2k/2xHFA2kShallowESRGAN_uint8.ort`,
+      tileSize: 256,
+      upscaleFactor: 2,
+    }
+  }
 
   return {
     path: `${root}models/RealESRGAN/RealESRGAN_x4plus_anime_6B_uint8.ort`,

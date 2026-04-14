@@ -1,4 +1,4 @@
-export type Model = "6B" | "Swin2SR"
+export type Model = "6B" | "HFA2kShallowESRGAN" | "Swin2SR"
 
 export interface UpscaleOptions {
   targetSize?: number
