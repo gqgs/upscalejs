@@ -2,9 +2,13 @@
 
 Image upscaling in the browser using ONNX Runtime Web and super-resolution models.
 
+<p align="center">
+<img src="/src/assets/sample.png">
+</p>
+
 ## v2 breaking changes
 
-Version 2 replaces the old Real-CUGAN model API with the browser pipeline used by 3x3 Generator:
+Version 2 replaces the old Real-CUGAN model API with some new models.
 
 - Models are now `"6B"` (Real-ESRGAN anime 4x) and `"Swin2SR"` (balanced 2x).
 - `upscale()` returns an `ImageBitmap`.
@@ -47,7 +51,6 @@ type Model = "6B" | "Swin2SR"
 
 interface Options {
   workerCount?: number
-  maxWorkers?: number // Deprecated alias for workerCount.
   base?: string
   model?: Model
   forceUpscale?: boolean
