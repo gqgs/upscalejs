@@ -87,7 +87,7 @@ import type { Model } from "../image/options"
 const models: Model[] = ["6B", "HFA2kShallowESRGAN", "Swin2SR"]
 const storedModel = localStorage.getItem("model")
 const model = ref<Model>(
-  storedModel === "6B" || storedModel === "HFA2kShallowESRGAN" || storedModel === "Swin2SR" ? storedModel : "6B"
+  storedModel === "6B" || storedModel === "HFA2kShallowESRGAN" || storedModel === "Swin2SR" ? storedModel : "HFA2kShallowESRGAN"
 )
 const upscaling = ref(false)
 const active = ref(false)
