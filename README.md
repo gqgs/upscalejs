@@ -21,7 +21,7 @@ Version 2 replaces the old Real-CUGAN model API with some new models.
 import { Upscaler } from "upscalejs"
 
 const upscaler = new Upscaler({
-  base: "/",
+  base: new URL(import.meta.env.BASE_URL, window.location.origin).href,
   model: "6B",
   workerCount: 3,
 })
