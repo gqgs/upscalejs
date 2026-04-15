@@ -118,6 +118,7 @@ const upscale = async (files?: FileList | null) => {
   }
   const upscaler = new Upscaler({
     model: model.value,
+    base: new URL(import.meta.env.BASE_URL, window.location.origin).href,
   })
   try {
     upscaling.value = true
