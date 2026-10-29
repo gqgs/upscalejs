@@ -1,7 +1,7 @@
 export type ExecutionProvider = "webgpu" | "wasm"
 
 export const webGPUAvailable = (): boolean =>
-  typeof navigator !== "undefined" && !!navigator.gpu
+  typeof navigator !== "undefined" && !!(navigator as Navigator & { gpu?: unknown }).gpu
 
 /** Prefer GPU execution while retaining WASM for unsupported ONNX operators. */
 export const createPreferredSession = async <T>(
