@@ -26,3 +26,6 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+
+# Generated ONNX Runtime Web assets, always synced from the installed version
+/public/js/

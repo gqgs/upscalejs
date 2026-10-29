@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.16"
+      - name: Refresh dependency lockfile
+        run: npm install --package-lock-only --ignore-scripts
+      # This one-time dependency migration refreshes the PR lockfile on GitHub.
+      - name: Commit lockfile to the migration branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/fix/prefer-webgpu-with-wasm-fallback'
+        run: |
+          if ! git diff --quiet -- package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "chore: refresh npm dependency lockfile"
+            git push
+          fi
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm run lib
+      - name: Verify backend assets are packaged
+        run: |
+          test -f dist/js/ort-wasm-simd-threaded.wasm
+          find dist/js -name 'ort-wasm-simd-threaded.*.wasm' | grep -q .

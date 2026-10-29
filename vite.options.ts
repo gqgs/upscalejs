@@ -19,7 +19,6 @@ export const config = {
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
-      "onnxruntime-web": "onnxruntime-web/wasm",
     },
   },
 }

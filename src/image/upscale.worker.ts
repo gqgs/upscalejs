@@ -1,4 +1,5 @@
-import * as ort from "onnxruntime-web"
+import * as ort from "onnxruntime-web/webgpu"
+import { createPreferredSession } from "./backend"
 import type { Model } from "./options"
 
 ort.env.wasm.proxy = false
@@ -61,12 +62,18 @@ const getSession = async (model: Model, base: string): Promise<ort.InferenceSess
 
   if (!sessionPromises[model]) {
     const config = getModelConfig(model, base)
-    sessionPromises[model] = ort.InferenceSession.create(config.path, {
-      executionProviders: ["wasm"],
-      graphOptimizationLevel: "all",
-    }).then(session => {
+    sessionPromises[model] = createPreferredSession(executionProviders =>
+      ort.InferenceSession.create(config.path, {
+        executionProviders,
+        graphOptimizationLevel: "all",
+      })
+    ).then(session => {
       sessions[model] = session
       return session
+    }).catch(error => {
+      // Do not poison the cache if both providers fail; a later request may recover.
+      delete sessionPromises[model]
+      throw error
     })
   }
 
