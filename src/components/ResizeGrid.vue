@@ -40,10 +40,15 @@
   <div class="columns is-centered">
     <div v-show="input" class="is-12 column">
       <img class="px-2" :src="input">
-      <canvas class="px-2" ref="resultcanvas" />
+      <canvas v-show="hasResult" class="px-2" ref="resultcanvas" />
     </div>
     <div v-if="!input" class="is-6 column notification is-link is-light is-size-5">
       Upload an image using the button above to upscale it using the selected model.
+    </div>
+  </div>
+  <div v-if="errorMessage" class="columns is-centered" role="alert">
+    <div class="is-10 column">
+      <div class="notification is-danger is-light">Upscaling failed: {{ errorMessage }}</div>
     </div>
   </div>
   <div v-if="upscaling || done" class="columns is-centered" :class="{'done': done}">
@@ -82,6 +87,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue"
 import { Upscaler } from "../image/worker"
+import { runUpscaleJob } from "../image/upscale-job"
 import type { Model } from "../image/options"
 
 const models: Model[] = ["6B", "HFA2kShallowESRGAN", "Swin2SR"]
@@ -92,6 +98,8 @@ const model = ref<Model>(
 const upscaling = ref(false)
 const active = ref(false)
 const done = ref(false)
+const hasResult = ref(false)
+const errorMessage = ref("")
 const input = ref("")
 const progress = ref(0)
 const resultcanvas = ref()
@@ -104,42 +112,54 @@ const handleChange = (event: Event) => {
   upscale((event.target as HTMLInputElement).files)
 };
 
-const createImagePreview = (bitmap: ImageBitmap) => {
-  const canvas = resultcanvas.value as HTMLCanvasElement
-  const factor = model.value === "6B" ? 4 : 2
-  canvas.width = bitmap.width * factor
-  canvas.height = bitmap.height * factor
-  canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-}
-
 const upscale = async (files?: FileList | null) => {
-  if (!files || files.length === 0) {
-    return
-  }
+  if (!files || files.length === 0 || upscaling.value) return
+
+  upscaling.value = true
+  done.value = false
+  hasResult.value = false
+  errorMessage.value = ""
+  progress.value = 0
+
+  const canvas = resultcanvas.value as HTMLCanvasElement
+  canvas.width = 0
+  canvas.height = 0
+
+  const file = files[0]
+  input.value = URL.createObjectURL(file)
   const upscaler = new Upscaler({
     model: model.value,
     base: new URL(import.meta.env.BASE_URL, window.location.origin).href,
   })
+  let sourceBitmap: ImageBitmap | undefined
+
   try {
-    upscaling.value = true
-    done.value = false
-    progress.value = 0
-    const file = files[0]
-    const bitmap = await createImageBitmap(file)
-    createImagePreview(bitmap)
-    input.value = URL.createObjectURL(file)
-    const result = await upscaler.upscale(bitmap, {
-      model: model.value,
-      onProgress: percent => {
-        progress.value = percent
-      }
-    })
-    const canvas = resultcanvas.value as HTMLCanvasElement
-    canvas.getContext("2d")?.drawImage(result, 0, 0)
+    sourceBitmap = await createImageBitmap(file)
+    const bitmap = sourceBitmap
+    const outcome = await runUpscaleJob(
+      () => upscaler.upscale(bitmap, {
+        model: model.value,
+        onProgress: percent => { progress.value = percent },
+      }),
+      result => {
+        const ctx = canvas.getContext("2d")
+        if (!ctx) throw new Error("Could not get output canvas context")
+        canvas.width = result.width
+        canvas.height = result.height
+        ctx.drawImage(result, 0, 0)
+        hasResult.value = true
+      },
+      result => result.close(),
+    )
+    if (outcome.status === "error") throw new Error(outcome.message)
+    done.value = true
+  } catch (error) {
+    console.error("upscalejs: upscaling failed", error)
+    errorMessage.value = error instanceof Error ? error.message : String(error)
   } finally {
+    sourceBitmap?.close()
     upscaler.terminate()
     upscaling.value = false
-    done.value = true
   }
 }
 

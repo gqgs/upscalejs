@@ -64,6 +64,11 @@ export class Upscaler {
         worker.onmessage = event => this.handleWorkerMessage(event.data as WorkerResponse)
         worker.onerror = event => {
           console.error("upscalejs worker error:", event)
+          this.terminate(`Upscaler worker crashed: ${event.message || "unknown error"}`)
+        }
+        worker.onmessageerror = event => {
+          console.error("upscalejs worker message error:", event)
+          this.terminate("Upscaler worker could not deserialize a message")
         }
         this.workers.push(worker)
       }
@@ -121,10 +126,10 @@ export class Upscaler {
     this.workers.forEach(worker => worker.postMessage({ type: "release" }))
   }
 
-  public terminate() {
+  public terminate(reason = "Upscaler was terminated") {
     this.workers.forEach(worker => worker.terminate())
     this.workers = []
-    this.pendingJobs.forEach(job => job.reject(new Error("Upscaler was terminated")))
+    this.pendingJobs.forEach(job => job.reject(new Error(reason)))
     this.pendingJobs.clear()
     this.nextWorkerIndex = 0
   }
