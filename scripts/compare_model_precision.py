@@ -83,8 +83,10 @@ def save_fp16(raw: Path) -> Path | None:
 
 def input_image(sess: ort.InferenceSession, sample: Image.Image) -> np.ndarray:
     shape = sess.get_inputs()[0].shape
-    if len(shape) != 4 or shape[1] != 3:
+    if len(shape) != 4 or (isinstance(shape[1], int) and shape[1] != 3):
         raise ValueError(f"Expected NCHW RGB input, got {shape}")
+    # Symbolic channel counts are valid in the original Swin2SR graph; the
+    # bundled sample is explicitly converted to 3-channel RGB above.
     height = shape[2] if isinstance(shape[2], int) and shape[2] > 0 else 64
     width = shape[3] if isinstance(shape[3], int) and shape[3] > 0 else 64
     arr = np.asarray(sample.resize((width, height), Image.Resampling.BICUBIC), dtype=np.float32)
@@ -173,6 +175,9 @@ def main():
         }
         summary.append(row)
         print(json.dumps(row, indent=2), flush=True)
+        # The optimized ORT file is what the browser loads; do not duplicate the
+        # much larger raw FP32 ONNX export inside the downloadable artifact.
+        raw.unlink()
 
     (output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     mib = lambda n: f"{n / (1024 * 1024):.2f}" if n is not None else "n/a"
