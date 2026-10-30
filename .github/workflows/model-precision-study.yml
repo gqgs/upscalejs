@@ -1,0 +1,46 @@
+name: Model precision study
+
+on:
+  push:
+    branches: ["experiment/fp32-model-comparison"]
+    paths:
+      - "scripts/compare_model_precision.py"
+      - "scripts/convert_hfa2k_shallow_esrgan.py"
+      - "scripts/convert_realesrgan.py"
+      - ".github/workflows/model-precision-study.yml"
+      - "scripts/models/**"
+      - "public/models/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  precision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install CPU PyTorch
+        run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Install model and image dependencies
+        run: python -m pip install "onnx>=1.16,<2" "onnxruntime>=1.20,<2" "onnxconverter-common>=1.14,<2" "numpy<3" pillow safetensors
+      - name: Generate FP32 models and compare against UINT8
+        run: python scripts/compare_model_precision.py
+      - name: Show summary
+        if: always()
+        run: |
+          if [ -f precision-study/summary.md ]; then
+            cat precision-study/summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fp32-model-comparison
+          path: precision-study/
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 6
