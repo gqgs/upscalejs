@@ -68,13 +68,13 @@ interface UpscaleOptions {
 
 ### Execution backend
 
-The upscaler automatically prefers **WebGPU** when `navigator.gpu` is available. ONNX Runtime receives `[\"webgpu\", \"wasm\"]` so it can run unsupported operators on the CPU. If creating the WebGPU session fails (for example, an adapter is unavailable or the model cannot initialize on WebGPU), the worker retries with WASM only. Browsers without WebGPU use WASM directly. No API change is needed. WebGPU support and performance depend on the model and browser.
+The upscaler automatically prefers **WebGPU** when `navigator.gpu` is available. ONNX Runtime receives `[\"webgpu\", \"wasm\"]` so it can run unsupported operators on the CPU. If WebGPU session creation **or execution** fails (including ONNX Runtime tensor-placement errors), the worker retries the failed tile using a separate WASM-only session. The worker keeps using WASM for subsequent tiles instead of repeatedly attempting the broken GPU path. Browsers without WebGPU use WASM directly. No API change is needed. WebGPU support and performance depend on the model and browser.
 
 Keep `numThreads` at `1` unless you have tested your target browsers carefully. Browser WASM multithreading can produce unstable results under high concurrency.
 
 ## Assets
 
-Copy the model and ONNX Runtime files to your public directory. The build automatically copies the matching ONNX Runtime Web `ort-wasm-simd-threaded*.` assets from the installed package into `public/js` (including WebGPU's JSEP/Asyncify variants and the WASM-only fallback). Do not use the previously committed WASM-only binary from older versions of ONNX Runtime. Run `npm run prebuild` to regenerate these files after changing the runtime version. The `base` option must point to that public root.
+Copy the model and ONNX Runtime files to your public directory. The build automatically copies the matching ONNX Runtime Web `ort-wasm-simd-threaded*` assets from the installed package into `public/js` (including WebGPU's JSEP/Asyncify variants and the WASM-only fallback). Do not use the previously committed WASM-only binary from older versions of ONNX Runtime. Run `npm run prebuild` to regenerate these files after changing the runtime version. The `base` option must point to that public root.
 
 ```js
 const CopyPlugin = require("copy-webpack-plugin")

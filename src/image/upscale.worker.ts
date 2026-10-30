@@ -1,5 +1,5 @@
 import * as ort from "onnxruntime-web/webgpu"
-import { createPreferredSession } from "./backend"
+import { InferenceSessionWithFallback } from "./backend"
 import type { Model } from "./options"
 
 ort.env.wasm.proxy = false
@@ -24,8 +24,7 @@ type WorkerMessage = UpscaleMessage | ReleaseMessage
 
 const ctx: DedicatedWorkerGlobalScope = self as any
 
-const sessions: Partial<Record<Model, ort.InferenceSession>> = {}
-const sessionPromises: Partial<Record<Model, Promise<ort.InferenceSession>>> = {}
+const sessions: Partial<Record<Model, InferenceSessionWithFallback<ort.InferenceSession>>> = {}
 let queue = Promise.resolve()
 
 const normalizeBase = (base: string) => {
@@ -56,36 +55,25 @@ const getModelConfig = (model: Model, base: string) => {
   }
 }
 
-const getSession = async (model: Model, base: string): Promise<ort.InferenceSession> => {
-  const cached = sessions[model]
-  if (cached) return cached
-
-  if (!sessionPromises[model]) {
+const getSession = (model: Model, base: string): InferenceSessionWithFallback<ort.InferenceSession> => {
+  if (!sessions[model]) {
     const config = getModelConfig(model, base)
-    sessionPromises[model] = createPreferredSession(executionProviders =>
-      ort.InferenceSession.create(config.path, {
+    sessions[model] = new InferenceSessionWithFallback(
+      executionProviders => ort.InferenceSession.create(config.path, {
         executionProviders,
         graphOptimizationLevel: "all",
-      })
-    ).then(session => {
-      sessions[model] = session
-      return session
-    }).catch(error => {
-      // Do not poison the cache if both providers fail; a later request may recover.
-      delete sessionPromises[model]
-      throw error
-    })
+      }),
+      session => session.release(),
+    )
   }
-
-  return sessionPromises[model] as Promise<ort.InferenceSession>
+  return sessions[model] as InferenceSessionWithFallback<ort.InferenceSession>
 }
 
 const releaseSessions = async () => {
-  const models = Object.keys(sessions) as Model[]
-  for (const model of models) {
-    await sessions[model]?.release()
+  for (const model of Object.keys(sessions) as Model[]) {
+    const session = sessions[model]
     delete sessions[model]
-    delete sessionPromises[model]
+    await session?.release()
   }
 }
 
@@ -123,7 +111,7 @@ const upscaleTiled = async (
     throw new Error(`Invalid bitmap dimensions: ${bitmap.width}x${bitmap.height}`)
   }
 
-  const session = await getSession(model, base)
+  const session = getSession(model, base)
   const config = getModelConfig(model, base)
   const { width, height } = bitmap
   const tileSize = config.tileSize
@@ -165,8 +153,10 @@ const upscaleTiled = async (
       }
 
       const tensor = new ort.Tensor("float32", inputBuffer, [1, 3, tileSize, tileSize])
-      const results = await session.run({ [session.inputNames[0]]: tensor })
-      const output = results[session.outputNames[0]].data as Float32Array
+      const output = await session.run(async ortSession => {
+        const results = await ortSession.run({ [ortSession.inputNames[0]]: tensor })
+        return results[ortSession.outputNames[0]].data as Float32Array
+      })
 
       if (hasInvalidValues(output)) {
         throw new Error(`Model returned NaN or Infinity for tile at ${x},${y}`)
