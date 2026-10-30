@@ -42,3 +42,19 @@ optional precision: "fp32" option; omitting it preserves legacy UINT8 behavior.
 
 Check browser console logs for GPU fallback; seeing an output image alone
 does not establish that WebGPU ran, because WASM fallback remains enabled.
+
+## Important: browser-portable ORT export
+
+The first experimental artifact (run 40979957960) was generated with
+`ORT_ENABLE_ALL`. That enables the native CPU NCHWc layout optimizer and
+serializes `com.microsoft.nchwc:Conv` operators which ONNX Runtime Web does
+not register. **Do not use the first artifact for browser inference.**
+
+The updated exporter uses `ORT_ENABLE_BASIC` and rejects generated
+`.ort` files containing the `com.microsoft.nchwc` operator domain.
+The model-size and CPU timing figures can change when that optimization is
+removed. Download the artifact from the latest successful precision-study run.
+
+After extracting the new archive, overwrite the existing files and reload
+Chromium with caching disabled. A successful CPU comparison is not a guarantee
+of successful WebGPU execution; the browser test still needs to be repeated.
