@@ -53,15 +53,35 @@ def generate_fp32(name: str, output: Path) -> Path:
     return path
 
 
+# ORT_ENABLE_ALL applies CPU NCHWc layout rewrites during offline serialization.
+# The resulting com.microsoft.nchwc:Conv operator is not registered by ORT Web.
+# Only basic, provider-agnostic transformations are safe to bake into assets.
+FORBIDDEN_BROWSER_OP_DOMAINS = (b"com.microsoft.nchwc",)
+
+
+def assert_portable_ort(path: Path) -> None:
+    """Fail the artifact generation if a CPU-specific operator was serialized."""
+    binary = path.read_bytes()
+    for domain in FORBIDDEN_BROWSER_OP_DOMAINS:
+        if domain in binary:
+            raise RuntimeError(
+                f"{path} contains non-portable operator domain {domain.decode()}; "
+                "regenerate without extended/layout graph optimizations"
+            )
+
+
 def save_ort(raw: Path) -> Path:
     destination = raw.with_suffix(".ort")
     opt = ort.SessionOptions()
-    opt.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+    # Basic optimizations run before execution-provider partitioning.
+    # Never serialize CPU-specific NCHWc/layout optimizations for browser models.
+    opt.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_BASIC
     opt.add_session_config_entry("session.save_model_format", "ORT")
     opt.optimized_model_filepath = str(destination)
     ort.InferenceSession(str(raw), sess_options=opt, providers=["CPUExecutionProvider"])
     if not destination.is_file():
         raise RuntimeError("ORT serialization failed: " + str(destination))
+    assert_portable_ort(destination)
     return destination
 
 
