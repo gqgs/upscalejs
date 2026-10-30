@@ -56,16 +56,19 @@ def generate_fp32(name: str, output: Path) -> Path:
 # ORT_ENABLE_ALL applies CPU NCHWc layout rewrites during offline serialization.
 # The resulting com.microsoft.nchwc:Conv operator is not registered by ORT Web.
 # Only basic, provider-agnostic transformations are safe to bake into assets.
-FORBIDDEN_BROWSER_OP_DOMAINS = (b"com.microsoft.nchwc",)
+FORBIDDEN_BROWSER_OP_PREFIXES = (b"com.microsoft.nchwc:",)
 
 
 def assert_portable_ort(path: Path) -> None:
     """Fail the artifact generation if a CPU-specific operator was serialized."""
     binary = path.read_bytes()
-    for domain in FORBIDDEN_BROWSER_OP_DOMAINS:
+    for domain in FORBIDDEN_BROWSER_OP_PREFIXES:
+        # ORT embeds an unused domain-name registry in model metadata, so
+        # match actual node registrations (domain:op:version), not the domain
+        # name alone.
         if domain in binary:
             raise RuntimeError(
-                f"{path} contains non-portable operator domain {domain.decode()}; "
+                f"{path} contains non-portable operator {domain.decode()}; "
                 "regenerate without extended/layout graph optimizations"
             )
 
