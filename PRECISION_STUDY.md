@@ -24,3 +24,21 @@ onnxconverter-common, numpy, pillow and safetensors, then run:
 Or restrict generation to a single model:
 
     python scripts/compare_model_precision.py --models HFA2k
+
+## Local browser GPU test (opt-in, no default download changes)
+
+Download and extract the GitHub Actions artifact named fp32-model-comparison.
+Copy its models/ tree into public/models/ without removing the UINT8 assets.
+For example, from the extracted artifact directory:
+
+    cp -r models/. /path/to/upscalejs/public/models/
+    npm run dev
+
+Visit http://localhost:5173/?precision=fp32 and upload an image to test
+FP32 WebGPU inference. The unmodified URL continues to use UINT8. The
+experiment keeps separate model sessions and never loads both variants just
+because they exist in public/. The same API is available to consumers via the
+optional precision: "fp32" option; omitting it preserves legacy UINT8 behavior.
+
+Check browser console logs for GPU fallback; seeing an output image alone
+does not establish that WebGPU ran, because WASM fallback remains enabled.

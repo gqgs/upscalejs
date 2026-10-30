@@ -1,6 +1,7 @@
 import * as ort from "onnxruntime-web/webgpu"
 import { InferenceSessionWithFallback } from "./backend"
-import type { Model } from "./options"
+import type { Model, Precision } from "./options"
+import { getModelConfig } from "./model-config"
 
 ort.env.wasm.proxy = false
 
@@ -10,6 +11,7 @@ interface UpscaleMessage {
   bitmap: ImageBitmap
   targetSize?: number
   model: Model
+  precision: Precision
   base: string
   forceUpscale: boolean
   downscaleThreshold: number
@@ -24,41 +26,18 @@ type WorkerMessage = UpscaleMessage | ReleaseMessage
 
 const ctx: DedicatedWorkerGlobalScope = self as any
 
-const sessions: Partial<Record<Model, InferenceSessionWithFallback<ort.InferenceSession>>> = {}
+const sessions: Record<string, InferenceSessionWithFallback<ort.InferenceSession>> = {}
 let queue = Promise.resolve()
 
 const normalizeBase = (base: string) => {
   return base.endsWith("/") ? base : `${base}/`
 }
 
-const getModelConfig = (model: Model, base: string) => {
-  const root = normalizeBase(base)
-  if (model === "Swin2SR") {
-    return {
-      path: `${root}models/Swin2SR/swin2SR_uint8.ort`,
-      tileSize: 64,
-      upscaleFactor: 2,
-    }
-  }
-  if (model === "HFA2kShallowESRGAN") {
-    return {
-      path: `${root}models/HFA2k/2xHFA2kShallowESRGAN_uint8.ort`,
-      tileSize: 256,
-      upscaleFactor: 2,
-    }
-  }
-
-  return {
-    path: `${root}models/RealESRGAN/RealESRGAN_x4plus_anime_6B_uint8.ort`,
-    tileSize: 256,
-    upscaleFactor: 4,
-  }
-}
-
-const getSession = (model: Model, base: string): InferenceSessionWithFallback<ort.InferenceSession> => {
-  if (!sessions[model]) {
-    const config = getModelConfig(model, base)
-    sessions[model] = new InferenceSessionWithFallback(
+const getSession = (model: Model, precision: Precision, base: string): InferenceSessionWithFallback<ort.InferenceSession> => {
+  const key = `${model}:${precision}`
+  if (!sessions[key]) {
+    const config = getModelConfig(model, base, precision)
+    sessions[key] = new InferenceSessionWithFallback(
       executionProviders => ort.InferenceSession.create(config.path, {
         executionProviders,
         graphOptimizationLevel: "all",
@@ -66,13 +45,13 @@ const getSession = (model: Model, base: string): InferenceSessionWithFallback<or
       session => session.release(),
     )
   }
-  return sessions[model] as InferenceSessionWithFallback<ort.InferenceSession>
+  return sessions[key] as InferenceSessionWithFallback<ort.InferenceSession>
 }
 
 const releaseSessions = async () => {
-  for (const model of Object.keys(sessions) as Model[]) {
-    const session = sessions[model]
-    delete sessions[model]
+  for (const key of Object.keys(sessions)) {
+    const session = sessions[key]
+    delete sessions[key]
     await session?.release()
   }
 }
@@ -105,14 +84,15 @@ const upscaleTiled = async (
   bitmap: ImageBitmap,
   model: Model,
   base: string,
+  precision: Precision,
   onProgress?: (percent: number) => void
 ): Promise<ImageBitmap> => {
   if (bitmap.width === 0 || bitmap.height === 0) {
     throw new Error(`Invalid bitmap dimensions: ${bitmap.width}x${bitmap.height}`)
   }
 
-  const session = getSession(model, base)
-  const config = getModelConfig(model, base)
+  const session = getSession(model, precision, base)
+  const config = getModelConfig(model, base, precision)
   const { width, height } = bitmap
   const tileSize = config.tileSize
   const upscaleFactor = config.upscaleFactor
@@ -195,7 +175,7 @@ const upscaleTiled = async (
 }
 
 const processUpscale = async (message: UpscaleMessage, onProgress: (percent: number) => void): Promise<ImageBitmap> => {
-  const { bitmap, targetSize, model, base, forceUpscale, downscaleThreshold } = message
+  const { bitmap, targetSize, model, precision, base, forceUpscale, downscaleThreshold } = message
 
   if (targetSize && !forceUpscale && bitmap.width >= targetSize && bitmap.height >= targetSize) {
     onProgress(100)
@@ -211,7 +191,7 @@ const processUpscale = async (message: UpscaleMessage, onProgress: (percent: num
       inputWasDownscaled = true
     }
 
-    const upscaled = await upscaleTiled(inputBitmap, model, base, onProgress)
+    const upscaled = await upscaleTiled(inputBitmap, model, base, precision, onProgress)
     if (targetSize && (upscaled.width !== targetSize || upscaled.height !== targetSize)) {
       const resized = await downscaleImage(upscaled, targetSize)
       upscaled.close()

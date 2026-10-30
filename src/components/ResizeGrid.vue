@@ -37,6 +37,11 @@
     </a>
     </div>
   </div>
+  <div v-if="precision === 'fp32'" class="columns is-centered">
+    <div class="is-10 column notification is-warning is-light">
+      FP32 comparison mode: this requires separate FP32 model assets from the precision study artifact.
+    </div>
+  </div>
   <div class="columns is-centered">
     <div v-show="input" class="is-12 column">
       <img class="px-2" :src="input">
@@ -91,6 +96,7 @@ import { runUpscaleJob } from "../image/upscale-job"
 import type { Model } from "../image/options"
 
 const models: Model[] = ["6B", "HFA2kShallowESRGAN", "Swin2SR"]
+const precision = new URLSearchParams(window.location.search).get("precision") === "fp32" ? "fp32" : "uint8"
 const storedModel = localStorage.getItem("model")
 const model = ref<Model>(
   storedModel === "6B" || storedModel === "HFA2kShallowESRGAN" || storedModel === "Swin2SR" ? storedModel : "HFA2kShallowESRGAN"
@@ -129,6 +135,7 @@ const upscale = async (files?: FileList | null) => {
   input.value = URL.createObjectURL(file)
   const upscaler = new Upscaler({
     model: model.value,
+    precision,
     base: new URL(import.meta.env.BASE_URL, window.location.origin).href,
   })
   let sourceBitmap: ImageBitmap | undefined

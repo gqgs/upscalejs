@@ -1,5 +1,5 @@
 import Worker from "./upscale.worker?worker&inline"
-import { type Model, type Options, type ResolvedOptions, type UpscaleOptions, resolveOptions } from "./options"
+import { type Model, type Precision, type Options, type ResolvedOptions, type UpscaleOptions, resolveOptions } from "./options"
 
 interface PendingJob {
   resolve: (bitmap: ImageBitmap) => void
@@ -104,6 +104,7 @@ export class Upscaler {
     const id = (this.nextJobId++).toString()
     const bitmap = await createImageBitmap(image)
     const model = options.model ?? this.options.model
+    const precision = options.precision ?? this.options.precision
     const forceUpscale = options.forceUpscale ?? this.options.forceUpscale
 
     return new Promise((resolve, reject) => {
@@ -114,6 +115,7 @@ export class Upscaler {
         bitmap,
         targetSize: options.targetSize,
         model,
+        precision,
         base: this.options.base,
         forceUpscale,
         downscaleThreshold: this.options.downscaleThreshold,
@@ -137,6 +139,7 @@ export class Upscaler {
 
 export type {
   Model,
+  Precision,
   Options,
   UpscaleOptions,
 }
